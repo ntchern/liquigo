@@ -1,0 +1,3 @@
+databaseChangeLog:
+  - first.sql
+  - second.sql
