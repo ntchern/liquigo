@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,6 +17,7 @@ import (
 const (
 	commentChangeset = "-- changeset"
 	commentMD5       = "-- md5"
+	commentSplit     = "-- splitStatements"
 	commentPrefix    = "-- "
 )
 
@@ -28,6 +30,9 @@ type changeset struct {
 
 	// MD5
 	MD5 string
+
+	// splitStatements
+	splitStatements bool
 
 	// Body of the changeset
 	SQLs []string
@@ -48,38 +53,57 @@ func changesets(r io.Reader) ([]changeset, error) {
 			if set.ID != "" {
 				result = append(result, set)
 			}
-			set = changeset{ID: parseID(s)}
+			set = changeset{
+				ID:              parseID(s),
+				splitStatements: true,
+			}
 			continue
-		}
 
-		if strings.HasPrefix(s, commentMD5) {
+		} else if strings.HasPrefix(s, commentMD5) {
 			set.MD5 = parseMD5(s)
 			continue
-		}
 
-		if strings.HasPrefix(s, commentPrefix) {
-			continue
-		}
-
-		if sb.Len() > 0 {
-			sb.WriteString(" ")
-		}
-		s = strings.TrimSpace(strings.Split(s, commentPrefix)[0])
-		sb.WriteString(s)
-		if strings.HasSuffix(s, ";") {
-			set.SQLs = append(set.SQLs, sb.String())
-			if set.MD5 == "" {
-				m := md5.Sum([]byte(strings.Join(set.SQLs, " ")))
-				set.MD5 = fmt.Sprintf("%x", m)
+		} else if strings.HasPrefix(s, commentSplit) {
+			b, err := parseSplit(s)
+			if err != nil {
+				return result, err
 			}
-			sb.Reset()
+			set.splitStatements = b
+			continue
+
+		} else if strings.HasPrefix(s, commentPrefix) {
+			continue
+
+		}
+
+		s = strings.TrimSpace(strings.Split(s, commentPrefix)[0])
+		if len(s) > 0 {
+			if sb.Len() > 0 {
+				sb.WriteString(" ")
+			}
+			sb.WriteString(s)
+			if set.splitStatements && strings.HasSuffix(s, ";") {
+				appendSQL(&set, sb)
+				sb.Reset()
+			}
 		}
 	}
 
+	if sb.Len() > 0 {
+		appendSQL(&set, sb)
+	}
 	if set.ID != "" {
 		result = append(result, set)
 	}
 	return result, scanner.Err()
+}
+
+func appendSQL(set *changeset, sb strings.Builder) {
+	set.SQLs = append(set.SQLs, sb.String())
+	if set.MD5 == "" {
+		m := md5.Sum([]byte(strings.Join(set.SQLs, " ")))
+		set.MD5 = fmt.Sprintf("%x", m)
+	}
 }
 
 type changeSetRecord struct {
@@ -157,4 +181,9 @@ func parseID(input string) string {
 
 func parseMD5(input string) string {
 	return strings.Trim(strings.TrimPrefix(input, commentMD5), " \t")
+}
+
+func parseSplit(input string) (bool, error) {
+	s := strings.Trim(strings.TrimPrefix(input, commentSplit), " \t")
+	return strconv.ParseBool(s)
 }

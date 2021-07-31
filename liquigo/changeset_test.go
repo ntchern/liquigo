@@ -18,8 +18,12 @@ func TestParse(t *testing.T) {
 
 	-- changeset b
 	-- md5 12345
+	-- splitStatements false
 	ALTER TABLE
 		order;
+
+	ALTER TABLE
+		product;
 	`
 
 	sets, err := changesets(strings.NewReader(input))
@@ -35,8 +39,10 @@ func TestParse(t *testing.T) {
 	assert.Equal(t, "CREATE TABLE order;", sets[0].SQLs[0])
 	assert.Equal(t, "CREATE TABLE product;", sets[0].SQLs[1])
 	assert.Equal(t, "5947e68449e2fd7cfbe20386e64023c9", sets[0].MD5)
+	assert.Equal(t, true, sets[0].splitStatements) // default value
 
 	assert.Equal(t, "b", sets[1].ID)
-	assert.Equal(t, "ALTER TABLE order;", sets[1].SQLs[0])
+	assert.Equal(t, "ALTER TABLE order; ALTER TABLE product;", sets[1].SQLs[0])
 	assert.Equal(t, "12345", sets[1].MD5)
+	assert.Equal(t, false, sets[1].splitStatements)
 }
