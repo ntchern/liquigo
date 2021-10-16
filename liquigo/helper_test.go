@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const postgresVersion = "13.3-alpine"
+const postgresVersion = "13.4-alpine"
 const postgresPort = "5454"
 
 func startPostgresContainer() error {
