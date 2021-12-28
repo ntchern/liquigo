@@ -24,9 +24,10 @@ func initUpdateCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&updateURL, "url", "", "DB URL")
-	cmd.Flags().StringVar(&updateSchema, "schema", "", "Set current DB schema")
+	cmd.Flags().StringVar(&updateSchema, "schema", "", "Set current DB schema (optional)")
 	cmd.Flags().StringVar(&updateFile, "changeLog", "", "Changeset file")
-	cmd.HasPersistentFlags()
+	cmd.MarkFlagRequired("url")
+	cmd.MarkFlagRequired("changeLog")
 	return cmd
 }
 

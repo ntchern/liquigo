@@ -13,4 +13,6 @@ docker run --rm --network host \
     -e DB_PASSWORD=postgres \
     -e DB_SSLMODE=disable \
     ntchern/liquigo:0.1.0 \
-    /workdir/test-files/2-initial-update/_changelog.yaml
+    update \
+    --url qq \
+    --changeLog /workdir/test-files/2-initial-update/_changelog.yaml
